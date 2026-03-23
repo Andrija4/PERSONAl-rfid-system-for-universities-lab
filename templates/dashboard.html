@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFID Access Control</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0a0c0f;
+      --panel:     #0f1318;
+      --border:    #1e2d1e;
+      --green:     #00ff88;
+      --green-dim: #00cc6a;
+      --red:       #ff3355;
+      --amber:     #ffaa00;
+      --text:      #c8d8c8;
+      --muted:     #4a5a4a;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Rajdhani', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      min-height: 100vh;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, #0d1a0d 39px, #0d1a0d 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, #0d1a0d 39px, #0d1a0d 40px);
+    }
+
+    /* ── Layout ── */
+    .topbar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-logo {
+      font-family: var(--mono);
+      color: var(--green);
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .topbar-logo::before {
+      content: '';
+      width: 10px; height: 10px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .topbar-sub {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: .75rem;
+      letter-spacing: 1px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* ── Stats ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 1.2rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+    }
+    .stat-card.green::after  { background: var(--green); }
+    .stat-card.red::after    { background: var(--red); }
+    .stat-card.amber::after  { background: var(--amber); }
+    .stat-card.muted::after  { background: var(--muted); }
+
+    .stat-label {
+      font-family: var(--mono);
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: .4rem;
+    }
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card.green .stat-value  { color: var(--green); }
+    .stat-card.red .stat-value    { color: var(--red); }
+    .stat-card.amber .stat-value  { color: var(--amber); }
+    .stat-card.muted .stat-value  { color: var(--text); }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    .panel-header {
+      padding: .8rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-title {
+      font-family: var(--mono);
+      font-size: .75rem;
+      letter-spacing: 2px;
+      color: var(--green);
+      text-transform: uppercase;
+    }
+    .panel-body { padding: 1.2rem; }
+
+    /* ── Add Card Form ── */
+    .add-form {
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+      margin-bottom: 1.2rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-row { display: flex; gap: .6rem; }
+    .input-group { flex: 1; display: flex; flex-direction: column; gap: .3rem; }
+    .input-label {
+      font-family: var(--mono);
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+    input[type=text] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .85rem;
+      padding: .55rem .8rem;
+      outline: none;
+      width: 100%;
+      transition: border-color .2s;
+    }
+    input[type=text]:focus { border-color: var(--green); }
+
+    .btn {
+      font-family: var(--mono);
+      font-size: .75rem;
+      letter-spacing: 1px;
+      padding: .55rem 1.2rem;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .8; }
+    .btn-green  { background: var(--green); color: #000; font-weight: 700; }
+    .btn-red    { background: transparent; border: 1px solid var(--red); color: var(--red); }
+    .btn-amber  { background: transparent; border: 1px solid var(--amber); color: var(--amber); }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-family: var(--mono);
+      font-size: .6rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: left;
+      padding: .5rem .6rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: .55rem .6rem;
+      border-bottom: 1px solid #111a11;
+      font-family: var(--mono);
+      font-size: .8rem;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,255,136,.03); }
+
+    .rfid-chip {
+      background: rgba(0,255,136,.08);
+      color: var(--green);
+      padding: .15rem .5rem;
+      font-size: .75rem;
+      border: 1px solid rgba(0,255,136,.2);
+      letter-spacing: 1px;
+    }
+    .badge {
+      font-size: .65rem;
+      padding: .2rem .5rem;
+      letter-spacing: 1px;
+    }
+    .badge-green { color: var(--green); border: 1px solid rgba(0,255,136,.3); }
+    .badge-red   { color: var(--red);   border: 1px solid rgba(255,51,85,.3); }
+    .badge-amber { color: var(--amber); border: 1px solid rgba(255,170,0,.3); }
+    .badge-muted { color: var(--muted); border: 1px solid var(--border); }
+
+    .action-btns { display: flex; gap: .4rem; }
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: .65rem;
+      padding: .25rem .5rem;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .15s;
+    }
+    .icon-btn:hover { border-color: var(--text); color: var(--text); }
+    .icon-btn.del:hover { border-color: var(--red); color: var(--red); }
+    .icon-btn.tog:hover { border-color: var(--amber); color: var(--amber); }
+
+    /* ── Log scroll ── */
+    .log-scroll {
+      max-height: 480px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .log-access  td:first-child { border-left: 2px solid var(--green); }
+    .log-denied  td:first-child { border-left: 2px solid var(--red); }
+
+    .error-msg {
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: .8rem;
+      padding: .6rem;
+    }
+
+    .refresh-btn {
+      font-family: var(--mono);
+      font-size: .65rem;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: .3rem .7rem;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .15s;
+    }
+    .refresh-btn:hover { color: var(--green); border-color: var(--green); }
+
+    .htmx-indicator { opacity: 0; transition: opacity .2s; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .grid  { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 500px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-logo">◈ RFID CONTROL SERVICE</div>
+  <span class="topbar-sub">// RAF LABORATORY</span>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card muted">
+      <div class="stat-label">Total Cards</div>
+      <div class="stat-value">{{ total }}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Active Cards</div>
+      <div class="stat-value">{{ active }}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Access Granted</div>
+      <div class="stat-value">{{ granted }}</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Access Denied</div>
+      <div class="stat-value">{{ denied }}</div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── Cards Panel ── -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">◈ Authorized Cards</span>
+      </div>
+      <div class="panel-body">
+
+        <!-- Add form -->
+        <form class="add-form"
+              hx-post="/cards/add"
+              hx-target="#cards-tbody"
+              hx-swap="afterbegin"
+              hx-on::after-request="this.reset()">
+          <div class="form-row">
+            <div class="input-group">
+              <label class="input-label">RFID NUMBER</label>
+              <input type="text" name="rfid_number" placeholder="e.g. A1B2C3D4" required>
+            </div>
+            <div class="input-group">
+              <label class="input-label">PERSON NAME</label>
+              <input type="text" name="name" placeholder="e.g. John Doe" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-green">+ ADD CARD</button>
+        </form>
+
+        <!-- Cards table -->
+        <div style="max-height:380px; overflow-y:auto; scrollbar-width:thin; scrollbar-color: var(--border) transparent;">
+          <table>
+            <thead>
+              <tr>
+                <th>RFID</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Added</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="cards-tbody">
+              {% for card in cards %}
+              {% include "partials/card_row.html" %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Logs Panel ── -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">◈ Scan Log</span>
+        <button class="refresh-btn"
+                hx-get="/logs/refresh"
+                hx-target="#log-tbody"
+                hx-swap="innerHTML">
+          ↻ REFRESH
+        </button>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <div class="log-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>TIME</th>
+                <th>RFID</th>
+                <th>USER</th>
+                <th>RESULT</th>
+              </tr>
+            </thead>
+            <tbody id="log-tbody">
+              {% include "partials/log_rows.html" %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+</div><!-- /container -->
+
+</body>
+</html>

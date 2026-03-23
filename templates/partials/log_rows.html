@@ -1,0 +1,18 @@
+{% for log in logs %}
+<tr class="{% if log.access %}log-access{% else %}log-denied{% endif %}">
+  <td style="color:var(--muted); font-size:.72rem; white-space:nowrap;">
+    {{ log.scanned_at.strftime('%m-%d %H:%M:%S') }}
+  </td>
+  <td><span class="rfid-chip">{{ log.rfid_number }}</span></td>
+  <td>{{ log.user_name if log.user_name else '—' }}</td>
+  <td>
+    {% if log.access %}
+    <span class="badge badge-green">GRANTED</span>
+    {% else %}
+    <span class="badge badge-red">DENIED</span>
+    {% endif %}
+  </td>
+</tr>
+{% else %}
+<tr><td colspan="4" style="color:var(--muted); font-family:var(--mono); font-size:.8rem; padding:1rem; text-align:center;">No scans yet</td></tr>
+{% endfor %}

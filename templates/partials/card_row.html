@@ -1,0 +1,29 @@
+<tr id="card-{{ card.id }}">
+  <td><span class="rfid-chip">{{ card.rfid_number }}</span></td>
+  <td>{{ card.name }}</td>
+  <td>
+    {% if card.is_active %}
+    <span class="badge badge-green">ACTIVE</span>
+    {% else %}
+    <span class="badge badge-muted">DISABLED</span>
+    {% endif %}
+  </td>
+  <td style="color:var(--muted); font-size:.72rem;">{{ card.created_at.strftime('%Y-%m-%d') }}</td>
+  <td>
+    <div class="action-btns">
+      <button class="icon-btn tog"
+              hx-patch="/cards/{{ card.id }}/toggle"
+              hx-target="#card-{{ card.id }}"
+              hx-swap="outerHTML">
+        {% if card.is_active %}DISABLE{% else %}ENABLE{% endif %}
+      </button>
+      <button class="icon-btn del"
+              hx-delete="/cards/{{ card.id }}"
+              hx-target="#card-{{ card.id }}"
+              hx-swap="outerHTML"
+              hx-confirm="Delete card for {{ card.name }}?">
+        DEL
+      </button>
+    </div>
+  </td>
+</tr>
